@@ -106,6 +106,12 @@ Remove-Item -LiteralPath .secrets\production-bootstrap
 
 Do not paste the initial password or bootstrap secret into chat, source control, or a shared terminal transcript. If bootstrap has already been claimed, the endpoint cannot create another super-admin.
 
+#### Set the bootstrap secret in the Cloudflare dashboard
+
+In Cloudflare, open **Workers & Pages → `zellink-studio` → Settings → Variables and Secrets**. Add or edit `BOOTSTRAP_SECRET` as a **Secret**, then deploy the change. The value must be at least 32 characters. Cloudflare hides a saved secret value; if you replace it, also replace the value in `.secrets/production-bootstrap` before running the local bootstrap script. Keep both values identical. See [Cloudflare's secret configuration guide](https://developers.cloudflare.com/workers/configuration/secrets/).
+
+Changing `BOOTSTRAP_SECRET` only gates the one-time `/api/auth/bootstrap` request; it does not create an account. The endpoint returns `404 setup_unavailable` when the secret is missing, `403 setup_unavailable` when it does not match, `409 bootstrap_already_completed` after the first account is created, and `500 internal_server_error` for an unexpected Worker or database failure. Do not rotate the secret in response to a 500. Check **Workers & Pages → `zellink-studio` → Observability → Logs** and search for the `requestId` returned in the error response. The Worker records the route, exception name and a short redacted error message. For live errors, run `npx wrangler tail zellink-studio --format pretty --status error`. Cloudflare documents [Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/) and the [Observability Query Builder](https://developers.cloudflare.com/workers/observability/query-builder/).
+
 Useful CLI commands after Cloudflare resources exist:
 
 ```powershell

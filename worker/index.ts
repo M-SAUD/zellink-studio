@@ -67,9 +67,24 @@ app.all("*", async (c) => c.env.ASSETS.fetch(c.req.raw));
 
 app.onError((error, c) => {
   const requestId = c.res.headers.get("X-Request-ID") ?? "unknown";
-  console.error(JSON.stringify({ event: "request_error", requestId, name: error.name }));
+  console.error(JSON.stringify({
+    event: "request_error",
+    requestId,
+    method: c.req.method,
+    path: new URL(c.req.url).pathname,
+    name: error.name,
+    message: safeErrorMessage(error.message),
+  }));
   return c.json({ error: "internal_server_error", requestId }, 500);
 });
+
+function safeErrorMessage(message: string): string {
+  return message
+    .replace(/[\w.+-]+@[\w.-]+\.[A-Z]{2,}/giu, "[redacted-email]")
+    .replace(/((?:password|secret|token|authorization)\s*[:=]\s*)[^,\s;}]+/giu, "$1[redacted]")
+    .replace(/\b[A-Za-z0-9_-]{32,}\b/gu, "[redacted-value]")
+    .slice(0, 300);
+}
 
 export default {
   fetch: app.fetch,
