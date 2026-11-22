@@ -92,7 +92,7 @@ function App() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
-  const [demoAvailable, setDemoAvailable] = useState(true);
+  const [demoAvailable, setDemoAvailable] = useState(false);
   const [fileUploadsEnabled, setFileUploadsEnabled] = useState(false);
   const actor = session?.actor;
   const selectedOrganization = organizations.find((org) => org.id === selectedOrgId) ?? null;
@@ -101,9 +101,17 @@ function App() {
 
   useEffect(() => {
     let live = true;
-    void api<{ fileUploadsEnabled: boolean }>("/api/health")
-      .then((status) => { if (live) setFileUploadsEnabled(status.fileUploadsEnabled); })
-      .catch(() => { if (live) setFileUploadsEnabled(false); });
+    void api<{ mode: string; fileUploadsEnabled: boolean }>("/api/health")
+      .then((status) => {
+        if (!live) return;
+        setFileUploadsEnabled(status.fileUploadsEnabled);
+        setDemoAvailable(status.mode === "development");
+      })
+      .catch(() => {
+        if (!live) return;
+        setFileUploadsEnabled(false);
+        setDemoAvailable(false);
+      });
     return () => { live = false; };
   }, []);
 
