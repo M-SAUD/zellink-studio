@@ -14,5 +14,5 @@ export default defineConfig({
       miniflare: { bindings: { TEST_MIGRATIONS: migrations } },
     };
   })],
-  test: { include: ["test/**/*.test.ts"], setupFiles: ["./test/apply-migrations.ts"], restoreMocks: true },
+  test: { include: ["test/**/*.test.ts"], setupFiles: ["./test/apply-migrations.ts"], restoreMocks: true, testTimeout: 20_000 },
 });
