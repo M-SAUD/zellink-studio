@@ -140,11 +140,12 @@ authRouter.post("/bootstrap", async (c) => {
   const tokenHash = await sha256(rawToken);
   const credential = await hashPassword(parsed.data.password);
   const results = await c.env.DB.batch([
-    c.env.DB.prepare(`UPDATE system_bootstrap SET state = 'claimed', user_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-      WHERE id = 1 AND state = 'pending'`).bind(userId),
     c.env.DB.prepare(`INSERT INTO app_users (id, email, display_name, global_role)
-      SELECT ?, ?, ?, 'super_admin' WHERE EXISTS (SELECT 1 FROM system_bootstrap WHERE id = 1 AND state = 'claimed' AND user_id = ?)`)
-      .bind(userId, normalizeEmail(parsed.data.email), parsed.data.displayName.trim(), userId),
+      SELECT ?, ?, ?, 'super_admin' WHERE EXISTS (SELECT 1 FROM system_bootstrap WHERE id = 1 AND state = 'pending')`)
+      .bind(userId, normalizeEmail(parsed.data.email), parsed.data.displayName.trim()),
+    c.env.DB.prepare(`UPDATE system_bootstrap SET state = 'claimed', user_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      WHERE id = 1 AND state = 'pending' AND EXISTS (SELECT 1 FROM app_users WHERE id = ?)`)
+      .bind(userId, userId),
     c.env.DB.prepare(`INSERT INTO password_credentials (user_id, password_hash, password_salt, iterations)
       SELECT ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM app_users WHERE id = ?)`)
       .bind(userId, credential.hash, credential.salt, credential.iterations, userId),

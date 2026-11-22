@@ -20,5 +20,5 @@
       { "queue": "zellink-studio-test-file-scans-dlq", "max_batch_size": 10 }
     ]
   },
-  "vars": { "APP_MODE": "test", "MAX_UPLOAD_BYTES": "20971520" }
+  "vars": { "APP_MODE": "test", "MAX_UPLOAD_BYTES": "20971520", "BOOTSTRAP_SECRET": "test-only-bootstrap-secret" }
 }

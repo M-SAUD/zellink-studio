@@ -79,6 +79,48 @@ afterEach(async () => {
 });
 
 describe("platform acceptance rules", () => {
+  it("creates the first super-admin before claiming the foreign-keyed bootstrap record", async () => {
+    const previous = await env.DB.prepare("SELECT user_id FROM system_bootstrap WHERE id = 1")
+      .first<{ user_id: string | null }>();
+    if (previous?.user_id) {
+      await env.DB.batch([
+        env.DB.prepare("DELETE FROM auth_sessions WHERE user_id = ?").bind(previous.user_id),
+        env.DB.prepare("DELETE FROM password_credentials WHERE user_id = ?").bind(previous.user_id),
+        env.DB.prepare("DELETE FROM audit_events WHERE actor_user_id = ? AND action = 'bootstrap_admin_created'").bind(previous.user_id),
+        env.DB.prepare(`UPDATE system_bootstrap SET state = 'pending', user_id = NULL,
+          updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = 1 AND user_id = ?`).bind(previous.user_id),
+        env.DB.prepare("DELETE FROM app_users WHERE id = ?").bind(previous.user_id),
+      ]);
+    }
+
+    const email = `bootstrap-${newId()}@test.invalid`;
+    const password = "Correct Horse Battery Staple 2026!";
+    const bootstrap = () => worker.fetch(new Request("https://zellink.test/api/auth/bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Setup-Secret": env.BOOTSTRAP_SECRET ?? "" },
+      body: JSON.stringify({ email, displayName: "Bootstrap Test", password }),
+    }), env, createExecutionContext());
+
+    const response = await bootstrap();
+    await expectStatus(response, 201);
+    expect(await response.json()).toMatchObject({
+      authenticated: true,
+      actor: { email, displayName: "Bootstrap Test", globalRole: "super_admin" },
+    });
+    expect(response.headers.get("set-cookie")).toContain("HttpOnly");
+
+    const state = await env.DB.prepare("SELECT state, user_id FROM system_bootstrap WHERE id = 1")
+      .first<{ state: string; user_id: string }>();
+    expect(state).toMatchObject({ state: "claimed" });
+    expect(state?.user_id).toBeTruthy();
+
+    const replay = await bootstrap();
+    await expectStatus(replay, 409);
+    const login = await requestAs("", "/api/auth/login", "POST", { email, password });
+    await expectStatus(login, 200);
+    expect(await login.json()).toMatchObject({ authenticated: true, actor: { globalRole: "super_admin" } });
+  }, 30_000);
+
   it("reserves one lane atomically when two requests compete for Foundation capacity", async () => {
     const fixture = await createOrganization({ plan: "foundation" });
     const requests = await Promise.all([createRequest(fixture, "queued"), createRequest(fixture, "queued")]);
