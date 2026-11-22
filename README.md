@@ -89,6 +89,23 @@ This release does not provision the ClamAV Container. Request and onboarding upl
 
 For the Zellink Cloudflare account, the D1 database, private R2 bucket, scan queues and all 11 migrations are in place. The Worker is deployed at [app.zellinkstudio.com](https://app.zellinkstudio.com). Cloudflare custom domains create the DNS record and certificate for an active zone; see [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/). The first super-admin account still needs to be created through the one-time bootstrap flow before anyone can sign in.
 
+### Create the first production admin
+
+Production starts with no users. From the repository root, run this script in PowerShell. It prompts for the first super-admin's email, display name and password without echoing the password. The password must be at least 12 characters. It reads the one-time `BOOTSTRAP_SECRET` from the ignored `.secrets/production-bootstrap` file and sends it only to the configured HTTPS app endpoint.
+
+```powershell
+.\scripts\bootstrap-production.ps1
+```
+
+After the script confirms success, sign in at `https://app.zellinkstudio.com`. Then remove the one-time secret from the Worker and delete the local copy:
+
+```powershell
+npx wrangler secret delete BOOTSTRAP_SECRET
+Remove-Item -LiteralPath .secrets\production-bootstrap
+```
+
+Do not paste the initial password or bootstrap secret into chat, source control, or a shared terminal transcript. If bootstrap has already been claimed, the endpoint cannot create another super-admin.
+
 Useful CLI commands after Cloudflare resources exist:
 
 ```powershell
