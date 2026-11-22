@@ -1,0 +1,2 @@
+# Local-only Wrangler variables. Replace this with a long random value.
+BOOTSTRAP_SECRET=replace-with-a-long-random-local-secret

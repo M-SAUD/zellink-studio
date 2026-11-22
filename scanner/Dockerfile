@@ -1,0 +1,4 @@
+FROM clamav/clamav:1.4
+
+ENV CLAMAV_NO_MILTERD=true \
+    FRESHCLAM_CHECKS=4

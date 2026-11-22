@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "zellink-studio",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "routes": [{ "pattern": "app.zellinkstudio.com", "custom_domain": true }],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zellink-studio",
+      "database_id": "125503e8-b123-467f-a7c9-8108c272b1a0",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "zellink-studio-files" }],
+  "queues": {
+    "producers": [{ "binding": "FILE_SCANS", "queue": "zellink-studio-file-scans" }],
+    "consumers": [
+      {
+        "queue": "zellink-studio-file-scans",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 5,
+        "dead_letter_queue": "zellink-studio-file-scans-dlq"
+      },
+      { "queue": "zellink-studio-file-scans-dlq", "max_batch_size": 10 }
+    ]
+  },
+  "triggers": { "crons": ["*/1 * * * *"] },
+  "vars": {
+    "APP_MODE": "production",
+    "MAX_UPLOAD_BYTES": "20971520",
+    "FILE_UPLOADS_ENABLED": "false"
+  },
+  "observability": { "enabled": true }
+}

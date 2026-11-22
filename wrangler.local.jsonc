@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "zellink-studio-local",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "dev": { "enable_containers": false },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zellink-studio-local",
+      "database_id": "local-zellink-studio",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "zellink-studio-local-files" }],
+  "containers": [
+    { "class_name": "ScannerContainer", "image": "./scanner/Dockerfile", "max_instances": 1, "instance_type": "standard-2" }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "SCANNER", "class_name": "ScannerContainer" }]
+  },
+  "exports": {
+    "ScannerContainer": { "type": "durable-object", "storage": "sqlite" }
+  },
+  "queues": {
+    "producers": [{ "binding": "FILE_SCANS", "queue": "zellink-studio-local-file-scans" }],
+    "consumers": [
+      {
+        "queue": "zellink-studio-local-file-scans",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 5,
+        "dead_letter_queue": "zellink-studio-local-file-scans-dlq"
+      },
+      { "queue": "zellink-studio-local-file-scans-dlq", "max_batch_size": 10 }
+    ]
+  },
+  "triggers": { "crons": ["*/1 * * * *"] },
+  "vars": {
+    "APP_MODE": "development",
+    "MAX_UPLOAD_BYTES": "20971520"
+  },
+  "observability": { "enabled": true }
+}

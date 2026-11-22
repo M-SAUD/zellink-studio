@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "zellink-studio-test",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zellink-studio-test",
+      "database_id": "local-zellink-test-v2",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "zellink-studio-test-files" }],
+  "queues": {
+    "producers": [{ "binding": "FILE_SCANS", "queue": "zellink-studio-test-file-scans" }],
+    "consumers": [
+      { "queue": "zellink-studio-test-file-scans", "max_batch_size": 10, "max_retries": 5, "dead_letter_queue": "zellink-studio-test-file-scans-dlq" },
+      { "queue": "zellink-studio-test-file-scans-dlq", "max_batch_size": 10 }
+    ]
+  },
+  "vars": { "APP_MODE": "test", "MAX_UPLOAD_BYTES": "20971520" }
+}
